@@ -912,16 +912,18 @@
   <div class="auth-card">
     <div class="auth-brand-sub">Sukhi Global</div>
     <h3>Sign in</h3>
-    <div class="field">
-      <label>Email</label>
-      <input id="authEmail" type="email" placeholder="you@company.com" autocomplete="username">
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input id="authPassword" type="password" placeholder="Your password" autocomplete="current-password">
-    </div>
-    <div id="authError" class="auth-error" style="display:none;"></div>
-    <button class="btn-primary" id="authSignInBtn" style="width:100%;margin-top:6px;">Sign in</button>
+    <form id="authForm" autocomplete="on">
+      <div class="field">
+        <label>Email</label>
+        <input id="authEmail" name="email" type="email" placeholder="you@company.com" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="authPassword" name="password" type="password" placeholder="Your password" autocomplete="current-password" required>
+      </div>
+      <div id="authError" class="auth-error" style="display:none;"></div>
+      <button class="btn-primary" type="submit" id="authSignInBtn" style="width:100%;margin-top:6px;">Sign in</button>
+    </form>
     <div class="cell-sub" style="margin-top:14px;text-align:center;">Accounts are created by your administrator in the Supabase dashboard.</div>
   </div>
 </div>
@@ -996,15 +998,16 @@
   // ---------------------------------------------------------------
   // SUPABASE SETUP
   // ---------------------------------------------------------------
-  const SUPABASE_URL = 'https://oetrbbxtxlapiusffraz.supabase.co';
+  const SUPABASE_URL = 'https://nycslfearepksdujknyf.supabase.co';
   // Paste your Publishable (anon) key between the quotes below.
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ldHJiYnh0eGxhcGl1c2ZmcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNDM3NzgsImV4cCI6MjEwMDcxOTc3OH0.OawofIEMpNStrwgetpGGynabeq51ZKbXCgcL-JdLXcY';
+  const SUPABASE_ANON_KEY = 'YOUR_PUBLISHABLE_KEY_HERE';
 
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-      persistSession: true,     // keep the session in the browser (localStorage)
-      autoRefreshToken: true,   // silently refresh the token before it expires
-      detectSessionInUrl: true  // handle magic-link / OAuth redirects if added later
+      persistSession: true,       // keep the session while the browser stays open
+      storage: window.sessionStorage, // cleared when the browser is fully closed — must log in again next time
+      autoRefreshToken: true,     // silently refresh the token before it expires
+      detectSessionInUrl: true    // handle magic-link / OAuth redirects if added later
     }
   });
 
@@ -3398,9 +3401,10 @@
     }
   }
 
-  document.getElementById('authSignInBtn').addEventListener('click', handleSignIn);
-  document.getElementById('authPassword').addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleSignIn(); });
-  document.getElementById('authEmail').addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleSignIn(); });
+  document.getElementById('authForm').addEventListener('submit', (e)=>{
+    e.preventDefault();
+    handleSignIn();
+  });
   document.getElementById('logoutBtn').addEventListener('click', handleSignOut);
 
   let appLoadedOnce = false;
