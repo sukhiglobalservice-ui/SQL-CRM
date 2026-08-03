@@ -3557,7 +3557,14 @@
     renderSidebar();
   });
 
-  document.getElementById('.brand-logo').addEventListener('click', ()=>{
+  const companySearchInput = document.getElementById('companySearchInput');
+console.log(companySearchInput);
+if (companySearchInput) {
+    companySearchInput.addEventListener('input', (e) => {
+        state.companySearchQuery = e.target.value;
+        renderSidebar();
+    });
+}
     state.activeCompany = 'all';
     state.activeTab = 'meetings';
     render();
