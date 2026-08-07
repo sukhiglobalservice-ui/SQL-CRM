@@ -961,6 +961,25 @@
   }
   ::-webkit-scrollbar{height:8px;width:8px;}
   ::-webkit-scrollbar-thumb{background:var(--ink-3);border-radius:4px;}
+  /* ----- Two‑column company details ----- */
+.details-cols {
+  display: flex;
+  gap: 20px;            /* space between the two columns */
+  width: 100%;          /* fill the available width */
+}
+.details-col {
+  flex: 1;              /* each column takes equal space */
+  min-width: 0;         /* allow flex items to shrink if needed */
+}
+.details-col > div {
+  /* Optional: keep the same text styling you had before */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+  /* No wrapping/overflow needed now because each column is narrow enough */
+}
+
+/* Keep the existing .expanded-grid rules untouched – they’re no longer used here */
 </style>
 </head>
 <body>
@@ -2421,14 +2440,24 @@
     const placements = state.interviews.filter(iv=>iv.companyId===company.id && iv.status==='successful');
     const referredCandidates = state.candidates.filter(c=> (c.referredBy||'').trim().toLowerCase() === company.name.trim().toLowerCase());
 
-    const detailFields = [
-      ['Director', company.director], ['Source person', company.sourcePerson],
-      ['Phone', company.phone], ['Mobile', company.mobile],
-      ['Email', company.email], ['Website', company.website],
-      ['Line ID', company.lineId], ['Country', company.country], ['Location', company.location]
-    ];
-    const detailsHtml = detailFields.map(([label,val])=>
+    // ---- Split the detail fields into two halves ----
+    const mid = Math.ceil(detailFields.length / 2);   // left‑column gets the extra item if odd
+    const leftFields  = detailFields.slice(0, mid);
+    const rightFields = detailFields.slice(mid);
+
+    const leftHtml  = leftFields .map(([label,val])=>
       '<div><b>'+label+'</b>'+(val?esc(val):'—')+'</div>'
+    ).join('');
+    const rightHtml = rightFields.map(([label,val])=>
+      '<div><b>'+label+'</b>'+(val?esc(val):'—')+'</div>'
+    ).join('');
+
+    // ---- Wrapper for the two columns ----
+    const colsHtml =
+      '<div class="details-cols">' +
+        '<div class="details-col">'+leftHtml  +'</div>' +
+        '<div class="details-col">'+rightHtml +'</div>' +
+      '</div>';
     ).join('');
 
     const placementsHtml = placements.length
@@ -2454,7 +2483,7 @@
             '<span>Company details</span>'+
             '<span class="expanded-actions"><button class="btn-expanded-primary" id="detailsEditCompanyBtn">Edit</button><button class="btn-expanded-danger" id="detailsDeleteCompanyBtn">Delete</button></span>'+
           '</div>' +
-          '<div class="expanded-grid">'+detailsHtml+'</div>' +
+          colsHtml +
           (quickContactHtml(company) ? '<div class="quick-contact" style="margin-top:12px;">'+quickContactHtml(company)+'</div>' : '') +
         '</div>' +
         '<div class="chart-card wide">' +
