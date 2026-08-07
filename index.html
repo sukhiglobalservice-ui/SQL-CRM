@@ -705,6 +705,7 @@
   }
   .chart-card{
     background:var(--paper);
+    color:var(--ink);
     border:1px solid var(--line-dark);
     border-radius:10px;
     padding:16px;
@@ -1058,9 +1059,9 @@
   // ---------------------------------------------------------------
   // SUPABASE SETUP
   // ---------------------------------------------------------------
-  const SUPABASE_URL = 'https://nycslfearepksdujknyf.supabase.co';
+  const SUPABASE_URL = 'https://oetrbbxtxlapiusffraz.supabase.co';
   // Paste your Publishable (anon) key between the quotes below.
-  const SUPABASE_ANON_KEY = 'YOUR_PUBLISHABLE_KEY_HERE';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ldHJiYnh0eGxhcGl1c2ZmcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNDM3NzgsImV4cCI6MjEwMDcxOTc3OH0.OawofIEMpNStrwgetpGGynabeq51ZKbXCgcL-JdLXcY';
 
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
