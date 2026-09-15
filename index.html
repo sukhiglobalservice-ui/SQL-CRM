@@ -295,6 +295,21 @@
     border-radius:20px;
   }
   .qc-item:hover{color:var(--paper);border-color:var(--slate);}
+
+  /* Quick-contact pills were designed for the dark header/sidebar. Inside
+     the light Company Details card they need inverted colours, or they
+     render as near-invisible dark-on-light. */
+  .chart-card .qc-item{
+    color:var(--ink);
+    background:var(--paper-2);
+    border:1px solid var(--line-dark);
+  }
+  .chart-card .qc-item:hover{
+    color:var(--ink);
+    background:#E6E1D8;
+    border-color:var(--slate-dark);
+  }
+  .chart-card .quick-contact{flex-wrap:wrap;}
   .qc-item.wa:hover{color:#3FCB6B;border-color:#3FCB6B;}
   .qc-icons{display:inline-flex;gap:4px;margin-left:6px;}
   .qc-icon{
@@ -384,6 +399,12 @@
   @media (max-width:640px){
     .list-toolbar{flex-direction:column;}
     .list-search-input, .list-sort-select, .list-filter-select{width:100%;}
+    .report-charts{grid-template-columns:1fr;padding:12px;gap:12px;}
+    .report-cards{grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));}
+    .expanded-grid{grid-template-columns:1fr;}
+    .chart-card-title{align-items:flex-start;}
+    .chart-card-title .expanded-actions{width:100%;}
+    .chart-card-title .expanded-actions button{flex:1;}
   }
   .btn-add{
     background:var(--amber);
@@ -617,6 +638,11 @@
     gap:10px 16px;
     margin-bottom:14px;
   }
+  .expanded-grid > div{
+    min-width:0;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
   .expanded-grid .full{grid-column:1 / -1;}
   .expanded-grid b{
     display:block;
@@ -676,7 +702,10 @@
   }
   .stat-card{
     background:var(--paper);
+    color:var(--ink);
     padding:16px;
+    min-width:0;
+    overflow-wrap:anywhere;
   }
   .stat-card .stat-value{
     font-family:var(--font-display);
@@ -709,6 +738,9 @@
     border:1px solid var(--line-dark);
     border-radius:10px;
     padding:16px;
+    min-width:0;
+    overflow-wrap:anywhere;
+    word-break:break-word;
   }
   .chart-card.wide{grid-column:1 / -1;}
   .chart-card-title{
@@ -716,7 +748,11 @@
     font-weight:600;
     color:var(--ink);
     margin-bottom:12px;
+    gap:10px;
+    flex-wrap:wrap;
+    min-width:0;
   }
+  .chart-card-title .expanded-actions{flex-shrink:0;}
   .chart-card-empty{
     color:var(--slate-dark);
     font-size:12.5px;
@@ -742,8 +778,16 @@
     margin:0;
     padding:0;
   }
-  .profile-list .file-item{justify-content:space-between;}
-  .profile-list .file-item .pl-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .profile-list .file-item{justify-content:space-between;gap:10px;}
+  .profile-list .file-item .pl-name{
+    flex:1;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .profile-list .file-item .file-size,
+  .profile-list .file-item .badge{flex-shrink:0;}
   .doughnut-wrap{
     display:flex;
     align-items:center;
@@ -1039,7 +1083,7 @@
             <button class="btn-toolbar" id="templateBtn">⬇ Template</button>
             <button class="btn-toolbar" id="importCsvBtn">⬆ Import CSV</button>
             <input type="file" id="importCsvFile" accept=".csv" style="display:none;">
-            <div class="cell-sub" id="deadlinesNote" style="display:none;">Deadlines are generated automatically from Meetings and Interviews — nothing to add here directly.</div>
+            <div class="cell-sub" id="deadlinesNote" style="display:none;">Meetings and scheduled interviews appear here automatically — use "+ Add" to also log a deadline directly.</div>
           </div>
         </div>
         <div class="docket" id="panelBody"></div>
@@ -1059,9 +1103,9 @@
   // ---------------------------------------------------------------
   // SUPABASE SETUP
   // ---------------------------------------------------------------
-  const SUPABASE_URL = 'https://oetrbbxtxlapiusffraz.supabase.co';
+  const SUPABASE_URL = 'https://nycslfearepksdujknyf.supabase.co';
   // Paste your Publishable (anon) key between the quotes below.
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ldHJiYnh0eGxhcGl1c2ZmcmF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxNDM3NzgsImV4cCI6MjEwMDcxOTc3OH0.OawofIEMpNStrwgetpGGynabeq51ZKbXCgcL-JdLXcY';
+  const SUPABASE_ANON_KEY = 'YOUR_PUBLISHABLE_KEY_HERE';
 
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
@@ -1227,6 +1271,16 @@
     return { company_id: n.companyId||null, content: n.content||'' };
   }
 
+  function rowToDeadline(row){
+    return {
+      id: row.id, companyId: row.company_id||'', title: row.title||'',
+      date: row.due_date||'', notes: row.notes||'', createdAt: row.created_at||''
+    };
+  }
+  function deadlineToRow(d){
+    return { company_id: d.companyId||null, title: d.title||'', due_date: d.date||null, notes: d.notes||'' };
+  }
+
   function rowToFile(row){
     const bucket = row.deal_id ? 'deal-agreements' : 'candidate-documents';
     const table = row.deal_id ? 'deal_files' : 'candidate_files';
@@ -1239,7 +1293,7 @@
   }
   // Ephemeral UI-only state (not persisted): which row is expanded per
   // section, matching the click-to-expand pattern used for companies.
-  const expandedRow = {meetings:null, deals:null, interviews:null, candidates:null, notes:null};
+  const expandedRow = {meetings:null, deals:null, interviews:null, candidates:null, notes:null, deadlines:null};
   function toggleExpandRow(section, id){
     expandedRow[section] = expandedRow[section]===id ? null : id;
     render();
@@ -1363,7 +1417,7 @@
         rows = state.candidates.map(c=>[c.name, c.phone, c.email, c.referredBy, c.companyId?companyName(c.companyId):'', c.type, c.school, c.interviewDate, c.interviewTime, c.country, (c.sswCategories||[]).join(';'), c.japaneseCert, c.jobCategory, c.jobSubCategory, c.notes]);
         break;
       case 'deadlines':
-        rows = computedDeadlineItems().map(it=>[it.date, it.type, it.title, companyName(it.companyId), it.notes]);
+        rows = allDeadlineItems().map(it=>[it.date, it.type, it.title, companyName(it.companyId), it.notes]);
         break;
       case 'notes':
         rows = state.notes.map(n=>[companyName(n.companyId), n.createdAt, n.content]);
@@ -1964,7 +2018,7 @@
   // always reflects exactly what's in the database.
   async function loadAllFromSupabase(isRetry){
     try{
-      const [companiesRes, meetingsRes, dealsRes, dealFilesRes, candidatesRes, candidateFilesRes, interviewsRes, notesRes] = await Promise.all([
+      const [companiesRes, meetingsRes, dealsRes, dealFilesRes, candidatesRes, candidateFilesRes, interviewsRes, notesRes, deadlinesRes] = await Promise.all([
         supabase.from('companies').select('*').order('name'),
         supabase.from('meetings').select('*').order('meeting_date'),
         supabase.from('deals').select('*').order('created_at'),
@@ -1972,9 +2026,10 @@
         supabase.from('candidates').select('*').order('created_at'),
         supabase.from('candidate_files').select('*'),
         supabase.from('interviews').select('*').order('interview_date'),
-        supabase.from('company_notes').select('*').order('created_at', {ascending:false})
+        supabase.from('company_notes').select('*').order('created_at', {ascending:false}),
+        supabase.from('deadlines').select('*').order('due_date')
       ]);
-      [companiesRes, meetingsRes, dealsRes, dealFilesRes, candidatesRes, candidateFilesRes, interviewsRes, notesRes].forEach(res=>{
+      [companiesRes, meetingsRes, dealsRes, dealFilesRes, candidatesRes, candidateFilesRes, interviewsRes, notesRes, deadlinesRes].forEach(res=>{
         if(res.error) throw res.error;
       });
 
@@ -1987,7 +2042,7 @@
       state.candidates = candidatesRes.data.map(row => rowToCandidate(row, candFilesByCand[row.id]));
       state.interviews = interviewsRes.data.map(rowToInterview);
       state.notes = notesRes.data.map(rowToNote);
-      state.deadlines = [];
+      state.deadlines = deadlinesRes.data.map(rowToDeadline);
       storageOK = true;
     }catch(e){
       // An auth-shaped failure here (expired/invalid/future-dated JWT, bad
@@ -2059,12 +2114,25 @@
   // (scheduled) Interview dates.
   function computedDeadlineItems(){
     const items = [];
-    state.meetings.forEach(m=> items.push({date:m.date, time:m.time, type:'Meeting', title:m.title, companyId:m.companyId, notes:m.notes}));
+    state.meetings.forEach(m=> items.push({date:m.date, time:m.time, type:'Meeting', title:m.title, companyId:m.companyId, notes:m.notes, source:'auto'}));
     state.interviews.forEach(iv=>{
       if(iv.status && iv.status!=='scheduled') return;
-      items.push({date:iv.date, time:iv.time, type:'Interview', title:iv.candidate+' — '+iv.role, companyId:iv.companyId, notes:iv.notes});
+      items.push({date:iv.date, time:iv.time, type:'Interview', title:iv.candidate+' — '+iv.role, companyId:iv.companyId, notes:iv.notes, source:'auto'});
     });
     return items.filter(x=>x.date).sort((a,b)=> a.date.localeCompare(b.date));
+  }
+
+  // Deadlines shown to the user combine two things: the automatic rollup
+  // above (unchanged — zero manual entry, always in sync with Meetings and
+  // Interviews) and real, persisted deadline records added directly.
+  function allDeadlineItems(){
+    const manual = state.deadlines.map(d => ({
+      id: d.id, date: d.date, time: '', type: 'Deadline', title: d.title,
+      companyId: d.companyId, notes: d.notes, source: 'manual'
+    }));
+    return computedDeadlineItems().concat(manual)
+      .filter(x=>x.date)
+      .sort((a,b)=> a.date.localeCompare(b.date));
   }
 
   // ---------- REPORTS ----------
@@ -2122,7 +2190,7 @@
     const activeDeals = scopedDeals.filter(d=>d.stage==='active').length;
     const inactiveDeals = scopedDeals.filter(d=>d.stage==='inactive').length;
     const scheduledInterviews = scopedInterviews.filter(iv=>(iv.status||'scheduled')==='scheduled').length;
-    const upcomingDeadlines = computedDeadlineItems()
+    const upcomingDeadlines = allDeadlineItems()
       .filter(it=> scope==='all' || it.companyId===scope)
       .filter(it=>{ const d = daysUntil(it.date); return d>=0 && d<=7; }).length;
 
@@ -2314,7 +2382,7 @@
     document.getElementById('cnt-candidates').textContent = filt(state.candidates).length;
     document.getElementById('cnt-deals').textContent = filt(state.deals).length;
     document.getElementById('cnt-deadlines').textContent =
-      (state.activeCompany==='all' ? computedDeadlineItems() : computedDeadlineItems().filter(x=>x.companyId===state.activeCompany)).length;
+      (state.activeCompany==='all' ? allDeadlineItems() : allDeadlineItems().filter(x=>x.companyId===state.activeCompany)).length;
     document.getElementById('cnt-interviews').textContent = filt(state.interviews).length;
     document.getElementById('cnt-notes').textContent = filt(state.notes).length;
     document.querySelectorAll('.tab').forEach(t=>{
@@ -2607,7 +2675,7 @@
     }
 
     let rows = key==='deadlines'
-      ? (state.activeCompany==='all' ? computedDeadlineItems() : computedDeadlineItems().filter(x=>x.companyId===state.activeCompany))
+      ? (state.activeCompany==='all' ? allDeadlineItems() : allDeadlineItems().filter(x=>x.companyId===state.activeCompany))
       : filtered(key);
 
     const toolbarHtml = renderListToolbarHtml(key);
@@ -2623,7 +2691,7 @@
 
     if(rows.length===0){
       body.innerHTML = toolbarHtml + (key==='deadlines'
-        ? '<div class="empty-state">No upcoming meetings or interviews yet — deadlines populate automatically from those two tabs.</div>'
+        ? '<div class="empty-state">Nothing here yet. Meetings and scheduled interviews will show up automatically — or use "+ Add" to log a deadline directly.</div>'
         : '<div class="empty-state">Nothing here yet. Use "+ Add" to log the first entry, or clear your search/filter.</div>');
       finishRender();
       return;
@@ -2676,6 +2744,24 @@
       body.innerHTML = toolbarHtml + '<div class="row head grid-deadlines"><div>Date</div><div>Type</div><div>What</div><div>Company</div><div></div></div>' +
         rows.map(it=>{
           const cal = gcalUrl(it.type+': '+it.title+' — '+companyName(it.companyId), it.date, it.time, it.notes||'');
+          if(it.source==='manual'){
+            const isOpen = expandedRow.deadlines===it.id;
+            let html = '<div class="row grid-deadlines '+urgencyClass(it.date)+'" data-toggle="'+it.id+'">'+
+              '<div class="cell-date">'+fmtDate(it.date)+'</div>'+
+              '<div><span class="badge inactive">Deadline</span></div>'+
+              '<div>'+esc(it.title)+'</div>'+
+              '<div class="cell-sub">'+esc(companyName(it.companyId))+'</div>'+
+              '<div class="row-actions"><a href="'+cal+'" target="_blank" rel="noopener" title="Add to Google Calendar">📅</a><span class="row-chevron">'+(isOpen?'▾':'▸')+'</span></div>'+
+            '</div>';
+            if(isOpen){
+              html += '<div class="row-expanded"><div class="expanded-grid">'+
+                '<div><b>Company</b>'+esc(companyName(it.companyId))+'</div>'+
+                '<div><b>Date</b>'+fmtDate(it.date)+'</div>'+
+                '<div class="full"><b>Notes</b>'+esc(it.notes||'—')+'</div>'+
+              '</div><div class="expanded-actions"><button class="btn-expanded-primary" data-edit="'+it.id+'">Edit</button><button class="btn-expanded-danger" data-del="'+it.id+'">Delete</button></div></div>';
+            }
+            return html;
+          }
           return '<div class="row grid-deadlines '+urgencyClass(it.date)+'">'+
             '<div class="cell-date">'+fmtDate(it.date)+(it.time?'<div class="cell-sub">'+esc(it.time)+'</div>':'')+'</div>'+
             '<div><span class="badge '+(it.type==='Meeting'?'scheduled':'work')+'">'+it.type+'</span></div>'+
@@ -2801,6 +2887,7 @@
         else if(key==='interviews') openInterviewModal(btn.dataset.edit);
         else if(key==='deals') openDealModal(btn.dataset.edit);
         else if(key==='notes') openNoteModal(btn.dataset.edit);
+        else if(key==='deadlines') openDeadlineModal(btn.dataset.edit);
         else openModal(key, btn.dataset.edit);
       });
     });
@@ -3158,6 +3245,74 @@
         await loadAllFromSupabase();
       }catch(err){
         alert('Could not save note: '+(err.message||err));
+      }
+    });
+  }
+
+  function openDeadlineModal(editId){
+    if(state.companies.length===0){
+      alert('Add a client company first.');
+      return;
+    }
+    const existing = editId ? state.deadlines.find(d=>d.id===editId) : null;
+    const v = (name, fallback) => existing ? (existing[name]!==undefined ? existing[name] : (fallback||'')) : (fallback||'');
+    const modal = document.getElementById('modalContent');
+
+    let html = '<h3>'+(existing?'Edit deadline':'Add deadline')+'</h3>';
+    html += '<div class="field"><label>Company</label><select id="f-deadline-company">' +
+      state.companies.map(c=>'<option value="'+c.id+'" '+((existing?existing.companyId:state.activeCompany)===c.id?'selected':'')+'>'+esc(c.name)+'</option>').join('') +
+      '</select></div>';
+    html += '<div class="field"><label>Deadline</label><input id="f-deadline-title" type="text" value="'+esc(v('title'))+'"></div>';
+    html += '<div class="field"><label>Date</label><input id="f-deadline-date" type="date" value="'+esc(v('date'))+'"></div>';
+    html += '<div class="field"><label>Notes</label><textarea id="f-deadline-notes">'+esc(v('notes'))+'</textarea></div>';
+
+    html += '<div class="modal-actions">' +
+      (existing ? '<button class="btn-secondary" id="modalDeleteDeadline">Delete</button>' : '<span></span>') +
+      '<div><button class="btn-secondary" id="modalCancel">Cancel</button> <button class="btn-primary" id="modalSaveDeadline">Save</button></div>' +
+      '</div>';
+
+    modal.innerHTML = html;
+    document.getElementById('overlay').classList.add('show');
+    document.getElementById('modalCancel').addEventListener('click', closeModal);
+
+    if(existing){
+      document.getElementById('modalDeleteDeadline').addEventListener('click', async ()=>{
+        if(!confirm('Delete this deadline?')) return;
+        try{
+          const { error } = await supabase.from('deadlines').delete().eq('id', existing.id);
+          if(error) throw error;
+          closeModal();
+          await loadAllFromSupabase();
+        }catch(err){
+          alert('Could not delete deadline: '+(err.message||err));
+        }
+      });
+    }
+
+    document.getElementById('modalSaveDeadline').addEventListener('click', async ()=>{
+      const title = document.getElementById('f-deadline-title').value.trim();
+      const date = document.getElementById('f-deadline-date').value;
+      if(!title){ alert('Enter what the deadline is for.'); return; }
+      if(!date){ alert('Select a date.'); return; }
+      const record = {
+        companyId: document.getElementById('f-deadline-company').value,
+        title: title,
+        date: date,
+        notes: document.getElementById('f-deadline-notes').value.trim()
+      };
+      try{
+        const row = deadlineToRow(record);
+        if(existing){
+          const { error } = await supabase.from('deadlines').update(row).eq('id', existing.id);
+          if(error) throw error;
+        } else {
+          const { error } = await supabase.from('deadlines').insert(row);
+          if(error) throw error;
+        }
+        closeModal();
+        await loadAllFromSupabase();
+      }catch(err){
+        alert('Could not save deadline: '+(err.message||err));
       }
     });
   }
@@ -3568,6 +3723,7 @@
     else if(state.activeTab==='interviews') openInterviewModal(null);
     else if(state.activeTab==='deals') openDealModal(null);
     else if(state.activeTab==='notes') openNoteModal(null);
+    else if(state.activeTab==='deadlines') openDeadlineModal(null);
     else openModal(state.activeTab, null);
   });
   document.getElementById('addCompanyBtn').addEventListener('click', ()=> openCompanyModal(null));
@@ -3714,7 +3870,7 @@
     document.getElementById('templateBtn').style.display = isCandidates ? '' : 'none';
     document.getElementById('importCsvBtn').style.display = isCandidates ? '' : 'none';
     document.getElementById('exportCsvBtn').style.display = (isReports || isSettings || isDetails) ? 'none' : '';
-    document.getElementById('addItemBtn').style.display = (isDeadlines || isReports || isSettings || isDetails) ? 'none' : '';
+    document.getElementById('addItemBtn').style.display = (isReports || isSettings || isDetails) ? 'none' : '';
     document.getElementById('deadlinesNote').style.display = isDeadlines ? '' : 'none';
 
     // While a specific company is selected, the tab bar shows only Details —
